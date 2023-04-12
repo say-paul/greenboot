@@ -1,13 +1,14 @@
 [Unit]
-Description=Greenboot - TODO
-After=multi-user.target
+Description=greenboot Health Checks Runner
 Before=boot-complete.target
+OnFailureJobMode=fail
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/libexec/greenboot/greenboot check
+ExecStart=/usr/libexec/greenboot/greenboot health-check
 Restart=no
 
 [Install]
 RequiredBy=boot-complete.target
+WantedBy=multi-user.target

@@ -183,7 +183,7 @@ fn health_check() -> Result<()> {
             run_red()
                 .unwrap_or_else(|e| log::error!("cannot run red script due to: {}", e.to_string()));
             handle_boot_success(false)?;
-            set_boot_counter(config.max_reboot-1)
+            set_boot_counter(config.max_reboot)
                 .unwrap_or_else(|e| log::error!("cannot set boot_counter as: {}", e.to_string()));
             handle_reboot(false)
                 .unwrap_or_else(|e| log::error!("cannot reboot as: {}", e.to_string()));
@@ -201,7 +201,7 @@ fn trigger_rollback() -> Result<()> {
             Ok(())
         }
         Err(e) => {
-            bail!("Cannot rollback as {}", e);
+            bail!("Rollback not initiated as {}", e);
         }
     }
 }

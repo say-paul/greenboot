@@ -21,9 +21,8 @@ pub fn handle_rollback() -> Result<(), Error> {
     match get_boot_counter() {
         Some(-1) => {
             let status = Command::new("rpm-ostree").arg("rollback").status()?;
-            match status.code() {
-                Some(code) => bail!("process exited with code {}", code.to_string()),
-                None => Ok(()),
+            if status.success() {
+                return Ok(());
             }
             bail!("status code unknown");
         }

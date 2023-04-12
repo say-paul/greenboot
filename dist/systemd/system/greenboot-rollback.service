@@ -1,0 +1,18 @@
+
+[Unit]
+Description=Greenboot rollback
+DefaultDependencies=no
+Before=multi-user.target greenboot.service
+Wants=local-fs.target
+After=local-fs.target
+ConditionNeedsUpdate=|/etc
+ConditionNeedsUpdate=|/var
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/libexec/greenboot/greenboot rollback
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
