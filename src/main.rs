@@ -1,16 +1,16 @@
-use std::hash::Hash;
-use std::io::ErrorKind;
-use std::iter::FromIterator;
-use std::{
-    collections::HashSet,
-    fs::{self, File},
-    process::Command,
-};
-
+mod handler;
 use anyhow::{bail, Error, Result};
 use clap::{Parser, Subcommand, ValueEnum};
+use config::{Config, File, FileFormat};
 use glob::glob;
-use serde::{Deserialize, Serialize};
+use handler::*;
+use serde::Deserialize;
+use std::path::Path;
+use std::process::Command;
+use std::str;
+
+static GREENBOOT_INSTALL_PATHS: [&str; 2] = ["/usr/lib/greenboot", "/etc/greenboot"];
+static GREENBOOT_CONFIG_FILE: &str = "/etc/greenboot/greenboot.conf";
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -18,9 +18,41 @@ use serde::{Deserialize, Serialize};
 struct Cli {
     #[clap(value_enum, short, long, default_value_t = LogLevel::Info)]
     log_level: LogLevel,
-
     #[clap(subcommand)]
     command: Commands,
+}
+#[derive(Debug, Deserialize)]
+struct GreenbootConfig {
+    //max reboot attempts if diagnostics fails
+    max_reboot: i32,
+}
+
+impl GreenbootConfig {
+    fn set_default() -> Self {
+        Self { max_reboot: 3 }
+    }
+
+    fn get_config() -> Self {
+        let mut config = Self::set_default();
+        let parsed =
+            Config::builder().add_source(File::new(GREENBOOT_CONFIG_FILE, FileFormat::Ini));
+        match parsed.build() {
+            Ok(c) => {
+                config.max_reboot = match c.get_int("GREENBOOT_MAX_BOOT_ATTEMPTS") {
+                    Ok(c) => c.try_into().unwrap_or_else(|e| {
+                        log::warn!("{e}, using default value");
+                        config.max_reboot
+                    }),
+                    Err(e) => {
+                        log::warn!("{e}, using default value");
+                        config.max_reboot
+                    }
+                }
+            }
+            Err(e) => log::warn!("{e}, using default value"),
+        }
+        config
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -48,118 +80,134 @@ impl LogLevel {
 
 #[derive(Subcommand)]
 enum Commands {
-    Check,
-    Stamp,
+    HealthCheck,
+    Rollback,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash)]
-struct ServiceStatus {
-    unit: String,
+fn run_diagnostics() -> Result<(), Error> {
+    let mut script_failure: bool = false;
+    let mut path_exists: bool = false;
+    for path in GREENBOOT_INSTALL_PATHS {
+        let greenboot_required_path = format!("{path}/check/required.d/");
+        if !Path::new(&greenboot_required_path).is_dir() {
+            continue;
+        }
+        path_exists = true;
+        let greenboot_required_path = format!("{greenboot_required_path}*.sh");
+        for entry in glob(&greenboot_required_path)?.flatten() {
+            log::info!("running required check {}", entry.to_string_lossy());
+            let output = Command::new("bash").arg("-C").arg(entry.clone()).output()?;
+            if !output.status.success() {
+                log::error!("required script {} failed!", entry.to_string_lossy());
+                log::error!("reason: {}", String::from_utf8_lossy(&output.stderr));
+                script_failure = true;
+            }
+        }
+    }
+
+    if !path_exists {
+        bail!("required.d not found");
+    }
+
+    for path in GREENBOOT_INSTALL_PATHS {
+        let gereenboot_wanted_path = format!("{path}/check/wanted.d/*.sh");
+        for entry in glob(&gereenboot_wanted_path)?.flatten() {
+            log::info!("running wanted check {}", entry.to_string_lossy());
+            let output = Command::new("bash").arg("-C").arg(entry.clone()).output()?;
+            if !output.status.success() {
+                // combine and print stderr/stdout
+                log::warn!("wanted script {} failed!", entry.to_string_lossy());
+                log::warn!("reason: {}", String::from_utf8_lossy(&output.stderr));
+            }
+        }
+    }
+
+    if script_failure {
+        bail!("health-check failed!");
+    }
+    Ok(())
 }
 
-fn check() -> Result<(), Error> {
-    match File::open("/etc/greenboot/upgrade.stamp") {
-        Ok(_) => {
-            log::info!("stamp on disk, removing and running greenboot");
-            std::fs::remove_file("/etc/greenboot/upgrade.stamp")?
-        }
-        Err(e) => match e.kind() {
-            ErrorKind::NotFound => return Ok(()),
-            _ => {
-                bail!("unknown error when opening stamp file: {:?}", e);
-            }
-        },
-    }
-    let mut failure = false;
-    for path in [
-        "/usr/lib/greenboot/check/required.d/*.sh",
-        "/etc/greenboot/check/required.d/*.sh",
-    ] {
-        for entry in glob(path)?.flatten() {
-            log::info!("running required check {}", entry.to_string_lossy());
-            let output = Command::new("bash").arg("-C").arg(entry).output()?;
+fn run_red() -> Result<(), Error> {
+    for path in GREENBOOT_INSTALL_PATHS {
+        let red_path = format!("{path}/red.d/*.*");
+        for entry in glob(&red_path)?.flatten() {
+            log::info!("running red check {}", entry.to_string_lossy());
+            let output = Command::new("bash").arg("-C").arg(entry.clone()).output()?;
             if !output.status.success() {
                 // combine and print stderr/stdout
-                log::warn!("required script failed...");
-                failure = true;
+                log::warn!("red script: {} failed!", entry.to_string_lossy());
+                log::warn!("reason: {}", String::from_utf8_lossy(&output.stderr));
             }
         }
     }
-    for path in [
-        "/usr/lib/greenboot/check/wanted.d/*.sh",
-        "/etc/greenboot/check/wanted.d/*.sh",
-    ] {
-        for entry in glob(path)?.flatten() {
-            log::info!("running required check {}", entry.to_string_lossy());
-            let output = Command::new("bash").arg("-C").arg(entry).output()?;
-            if !output.status.success() {
-                // combine and print stderr/stdout
-                log::warn!("wanted script failed...");
-            }
-        }
-    }
-    // if a command with restart option in systemd fails to start we don't get it as "failed"
-    // reversing the check makes sure that if by the time After=multi-user the service isn't running then it's failing at least
-    let output = Command::new("systemctl")
-        .arg("list-units")
-        .arg("--state")
-        .arg("active")
-        .arg("--no-page")
-        .arg("--output")
-        .arg("json")
-        .output()?;
-    let services: Vec<ServiceStatus> = serde_json::from_str(&String::from_utf8(output.stdout)?)?;
-    let ss: Vec<String> = services.iter().map(|x| x.unit.clone()).collect();
-    let active_units: HashSet<String> = HashSet::from_iter(ss);
-    for service in ["sshd.service", "NetworkManager.service"] {
-        if !active_units.contains(service) {
-            log::warn!("service {} failed, see journal", service);
-            failure = true;
-        }
-    }
-    if failure {
-        for path in ["/etc/greenboot/red.d/*.sh"] {
-            for entry in glob(path)?.flatten() {
-                log::info!("running red check {}", entry.to_string_lossy());
-                let output = Command::new("bash").arg("-C").arg(entry).output()?;
-                if !output.status.success() {
-                    // combine and print stderr/stdout
-                    log::warn!("red script failed...");
-                }
-            }
-        }
-        log::warn!("SYSTEM is UNHEALTHY. Rolling back and rebooting...");
-        Command::new("rpm-ostree").arg("rollback").status()?;
-        reboot()?;
-        return Ok(());
-    }
-    for path in ["/etc/greenboot/green.d/*.sh"] {
-        for entry in glob(path)?.flatten() {
+    Ok(())
+}
+
+fn run_green() -> Result<(), Error> {
+    for path in GREENBOOT_INSTALL_PATHS {
+        let green_path = format!("{path}/green.d/*.*");
+        for entry in glob(&green_path)?.flatten() {
             log::info!("running green check {}", entry.to_string_lossy());
-            let output = Command::new("bash").arg("-C").arg(entry).output()?;
+            let output = Command::new("bash").arg("-C").arg(entry.clone()).output()?;
             if !output.status.success() {
                 // combine and print stderr/stdout
-                log::warn!("green script failed...");
+                log::warn!("green script {} failed!", entry.to_string_lossy());
+                log::warn!("reason: {}", String::from_utf8_lossy(&output.stderr));
             }
         }
     }
     Ok(())
 }
 
-fn reboot() -> Result<(), Error> {
-    Command::new("systemctl").arg("reboot").spawn()?;
-    Ok(())
+fn health_check() -> Result<()> {
+    let config = GreenbootConfig::get_config();
+    log::info!("{config:?}");
+    _ = handle_motd("healthcheck is in progress");
+    let run_status = run_diagnostics();
+    match run_status {
+        Ok(()) => {
+            log::info!("greenboot health-check passed.");
+            run_green().unwrap_or_else(|e| {
+                log::error!("cannot run green script due to: {}", e.to_string())
+            });
+            handle_motd("healthcheck passed - status is GREEN")
+                .unwrap_or_else(|e| log::error!("cannot set motd due to : {}", e.to_string()));
+            handle_boot_success(true)?;
+            Ok(())
+        }
+        Err(e) => {
+            log::error!("Greenboot health-check failed!");
+            handle_motd("healthcheck failed - status is RED")
+                .unwrap_or_else(|e| log::error!("cannot set motd due to : {}", e.to_string()));
+            run_red()
+                .unwrap_or_else(|e| log::error!("cannot run red script due to: {}", e.to_string()));
+            handle_boot_success(false)?;
+            set_boot_counter(config.max_reboot-1)
+                .unwrap_or_else(|e| log::error!("cannot set boot_counter as: {}", e.to_string()));
+            handle_reboot(false)
+                .unwrap_or_else(|e| log::error!("cannot reboot as: {}", e.to_string()));
+            bail!(e);
+        }
+    }
 }
 
-fn stamp() -> Result<(), Error> {
-    fs::create_dir_all("/etc/greenboot/")?;
-    File::create("/etc/greenboot/upgrade.stamp")?;
-    Ok(())
+fn trigger_rollback() -> Result<()> {
+    match handle_rollback() {
+        Ok(()) => {
+            log::info!("Rollback successful");
+            unset_boot_counter()?;
+            handle_reboot(true)?;
+            Ok(())
+        }
+        Err(e) => {
+            bail!("Cannot rollback as {}", e);
+        }
+    }
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-
     pretty_env_logger::formatted_builder()
         .filter_level(cli.log_level.to_log())
         .init();
