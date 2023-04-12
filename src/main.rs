@@ -165,7 +165,104 @@ fn main() -> Result<()> {
         .init();
 
     match cli.command {
-        Commands::Check => check(),
-        Commands::Stamp => stamp(),
+        Commands::HealthCheck => health_check(),
+        Commands::Rollback => trigger_rollback(), // will tackle the functionality later
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use anyhow::Context;
+
+    use super::*;
+
+    //validate when required folder is not found
+    #[test]
+    fn missing_required_folder() {
+        assert_eq!(
+            run_diagnostics().unwrap_err().to_string(),
+            String::from("required.d not found")
+        );
+    }
+
+    #[test]
+    fn test_passed_diagnostics() {
+        setup_folder_structure(true)
+            .context("Test setup failed")
+            .unwrap();
+        let state = run_diagnostics();
+        assert!(state.is_ok());
+        tear_down().context("Test teardown failed").unwrap();
+    }
+
+    #[test]
+    fn test_failed_diagnostics() {
+        setup_folder_structure(false)
+            .context("Test setup failed")
+            .unwrap();
+        let failed_msg = run_diagnostics().unwrap_err().to_string();
+        assert_eq!(failed_msg, String::from("health-check failed!"));
+        tear_down().context("Test teardown failed").unwrap();
+    }
+
+    #[test]
+    fn test_boot_counter_set() {
+        _ = unset_boot_counter();
+        _ = set_boot_counter(10);
+        assert_eq!(get_boot_counter(), Some(10));
+        _ = unset_boot_counter();
+    }
+
+    #[test]
+    fn test_boot_counter_re_set() {
+        _ = unset_boot_counter();
+        _ = set_boot_counter(10);
+        _ = set_boot_counter(20);
+        assert_eq!(get_boot_counter(), Some(10));
+        _ = unset_boot_counter();
+    }
+
+    fn setup_folder_structure(passing: bool) -> Result<()> {
+        let required_path = format!("{}/check/required.d", GREENBOOT_INSTALL_PATHS[1]);
+        let wanted_path = format!("{}/check/wanted.d", GREENBOOT_INSTALL_PATHS[1]);
+        let passing_test_scripts = "testing_assets/passing_script.sh";
+        let failing_test_scripts = "testing_assets/failing_script.sh";
+
+        fs::create_dir_all(&required_path).expect("cannot create folder");
+        fs::create_dir_all(&wanted_path).expect("cannot create folder");
+        let _a = fs::copy(
+            passing_test_scripts,
+            format!("{}/passing_script.sh", &required_path),
+        )
+        .context("unable to copy test assets");
+
+        let _a = fs::copy(
+            passing_test_scripts,
+            format!("{}/passing_script.sh", &wanted_path),
+        )
+        .context("unable to copy test assets");
+
+        let _a = fs::copy(
+            failing_test_scripts,
+            format!("{}/failing_script.sh", &wanted_path),
+        )
+        .context("unable to copy test assets");
+
+        if !passing {
+            let _a = fs::copy(
+                failing_test_scripts,
+                format!("{}/failing_script.sh", &required_path),
+            )
+            .context("unable to copy test assets");
+            return Ok(());
+        }
+        Ok(())
+    }
+
+    fn tear_down() -> Result<()> {
+        fs::remove_dir_all(GREENBOOT_INSTALL_PATHS[1]).expect("Unable to delete folder");
+        Ok(())
     }
 }
