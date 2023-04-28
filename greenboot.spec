@@ -6,7 +6,7 @@
 %global __cargo_is_lib() false
 %global forgeurl https://github.com/fedora-iot/greenboot
 
-Version:            0.99.3
+Version:            0.99.6
 
 %forgemeta
 
@@ -148,6 +148,15 @@ Provides: bundled(crate(yaml-rust)) = 0.4.5
 %description
 %{summary}.
 
+%package default-health-checks
+Summary:            Series of optional and curated health checks
+Requires:           %{name} = %{version}-%{release}
+Requires:           util-linux
+Requires:           jq
+
+%description default-health-checks
+%{summary}.
+
 %prep
 %forgeautosetup
 %if ! 0%{?with_packit}
@@ -211,6 +220,8 @@ mkdir    %{buildroot}%{_prefix}/lib/%{name}/green.d
 mkdir    %{buildroot}%{_prefix}/lib/%{name}/red.d
 mkdir -p %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_tmpfilesdir}
+install -DpZm 0755 usr/lib/greenboot/check/required.d/* %{buildroot}%{_prefix}/lib/%{name}/check/required.d
+install -DpZm 0755 usr/lib/greenboot/check/wanted.d/* %{buildroot}%{_prefix}/lib/%{name}/check/wanted.d
 
 %post
 %systemd_post greenboot.service
@@ -244,6 +255,11 @@ mkdir -p %{buildroot}%{_tmpfilesdir}
 %dir %{_sysconfdir}/%{name}/check/wanted.d
 %dir %{_sysconfdir}/%{name}/green.d
 %dir %{_sysconfdir}/%{name}/red.d
+
+%files default-health-checks
+%{_prefix}/lib/%{name}/check/required.d/01_repository_dns_check.sh
+%{_prefix}/lib/%{name}/check/wanted.d/01_update_platforms_check.sh
+%{_prefix}/lib/%{name}/check/required.d/02_watchdog.sh
 
 %changelog
 * Thu Sep 08 2022 Peter Robinson <pbrobinson@fedoraproject.org> - 0.15.2-1
