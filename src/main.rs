@@ -34,9 +34,10 @@ impl GreenbootConfig {
 
     fn get_config() -> Self {
         let mut config = Self::set_default();
-        let parsed =
-            Config::builder().add_source(File::new(GREENBOOT_CONFIG_FILE, FileFormat::Ini));
-        match parsed.build() {
+        let parsed = Config::builder()
+            .add_source(File::new(GREENBOOT_CONFIG_FILE, FileFormat::Ini))
+            .build();
+        match parsed {
             Ok(c) => {
                 config.max_reboot = match c.get_int("GREENBOOT_MAX_BOOT_ATTEMPTS") {
                     Ok(c) => c.try_into().unwrap_or_else(|e| {
@@ -163,7 +164,7 @@ fn run_green() -> Result<(), Error> {
 fn health_check() -> Result<()> {
     let config = GreenbootConfig::get_config();
     log::info!("{config:?}");
-    _ = handle_motd("healthcheck is in progress");
+    handle_motd("healthcheck is in progress").ok();
     let run_status = run_diagnostics();
     match run_status {
         Ok(()) => {
@@ -257,19 +258,19 @@ mod tests {
 
     #[test]
     fn test_boot_counter_set() {
-        _ = unset_boot_counter();
-        _ = set_boot_counter(10);
+        unset_boot_counter().ok();
+        set_boot_counter(10).ok();
         assert_eq!(get_boot_counter(), Some(10));
-        _ = unset_boot_counter();
+        unset_boot_counter().ok();
     }
 
     #[test]
     fn test_boot_counter_re_set() {
-        _ = unset_boot_counter();
-        _ = set_boot_counter(10);
-        _ = set_boot_counter(20);
+        unset_boot_counter().ok();
+        set_boot_counter(10).ok();
+        set_boot_counter(20).ok();
         assert_eq!(get_boot_counter(), Some(10));
-        _ = unset_boot_counter();
+        unset_boot_counter().ok();
     }
 
     fn setup_folder_structure(passing: bool) -> Result<()> {
