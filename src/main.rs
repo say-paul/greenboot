@@ -8,6 +8,7 @@ use serde::Deserialize;
 use std::path::Path;
 use std::process::Command;
 use std::str;
+use std::time::{Duration, SystemTime};
 
 static GREENBOOT_INSTALL_PATHS: [&str; 2] = ["/usr/lib/greenboot", "/etc/greenboot"];
 static GREENBOOT_CONFIG_FILE: &str = "/etc/greenboot/greenboot.conf";
@@ -83,6 +84,7 @@ impl LogLevel {
 enum Commands {
     HealthCheck,
     Rollback,
+    Poc,
 }
 
 fn run_diagnostics() -> Result<(), Error> {
@@ -207,6 +209,33 @@ fn trigger_rollback() -> Result<()> {
     }
 }
 
+pub fn poc_rollback_policy(duration: u32) -> Result<()> {
+    let s = Command::new("rpm-ostree")
+        .arg("status")
+        .arg("--json")
+        .output()
+        .unwrap();
+    let j: serde_json::Value = match str::from_utf8(&s.stdout[..]) {
+        Ok(v) => serde_json::from_str(v).unwrap(),
+        Err(_) => bail!("cannot_convert to json"),
+    };
+    let t_current = &j["deployments"][0]["timestamp"];
+    let t_current_millis = Duration::from_secs(t_current.as_u64().unwrap());
+    let t_previous = &j["deployments"][1]["timestamp"];
+    let t_previous_millis = Duration::from_secs(t_previous.as_u64().unwrap());
+    if t_current_millis < t_previous_millis {
+        bail!("already in the previous deployment");
+    }
+    let now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
+    if t_current_millis + Duration::from_secs((duration * 3600).into()) < now {
+        bail!("grace prediod has already passed to trigger rollback");
+    }
+    log::info!("within grace period");
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
     pretty_env_logger::formatted_builder()
@@ -215,7 +244,8 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::HealthCheck => health_check(),
-        Commands::Rollback => trigger_rollback(), // will tackle the functionality later
+        Commands::Rollback => trigger_rollback(),
+        Commands::Poc => poc_rollback_policy(1),
     }
 }
 
