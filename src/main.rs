@@ -4,11 +4,13 @@ use clap::{Parser, Subcommand, ValueEnum};
 use config::{Config, File, FileFormat};
 use glob::glob;
 use handler::*;
+use nix::sys::socket::SockaddrLike;
 use serde::Deserialize;
 use std::path::Path;
 use std::process::Command;
 use std::str;
 use std::time::{Duration, SystemTime};
+use systemctl;
 
 static GREENBOOT_INSTALL_PATHS: [&str; 2] = ["/usr/lib/greenboot", "/etc/greenboot"];
 static GREENBOOT_CONFIG_FILE: &str = "/etc/greenboot/greenboot.conf";
@@ -84,7 +86,8 @@ impl LogLevel {
 enum Commands {
     HealthCheck,
     Rollback,
-    Poc,
+    PocRollback,
+    PocServiceMinitor,
 }
 
 fn run_diagnostics() -> Result<(), Error> {
@@ -209,7 +212,7 @@ fn trigger_rollback() -> Result<()> {
     }
 }
 
-pub fn poc_rollback_policy(duration: u32) -> Result<()> {
+fn poc_rollback_policy(duration: u32) -> Result<()> {
     let s = Command::new("rpm-ostree")
         .arg("status")
         .arg("--json")
@@ -236,16 +239,86 @@ pub fn poc_rollback_policy(duration: u32) -> Result<()> {
     Ok(())
 }
 
+fn poc_service_monitor(mut services: Vec<&str>) -> Result<()> {
+    
+    //1. check if service exits
+    //2. check if services are enabled
+    //3. check running
+    //4. Reporting
+
+    //this will prioritize after health check and retrun two type of failure 
+    //if step 1 or 2 fail then result of 3 is ignored - Critical error, need manual intervention
+    //if step 1 and 2 passes but 3 fails - Auto revover error, and regular restart procedure is followed
+
+    //Assumptions
+    // let mut services = vec!["sshd","podman"];
+
+    let mut service_not_ok:Vec<&str> = Vec::with_capacity(services.len());
+    let mut unforced_error :bool = false; 
+
+    for service in &services {
+        match systemctl::exists(service) {
+            Ok(service_exists) => {
+                if !service_exists {
+                    log::warn!("service: {service} does not exits");
+                    service_not_ok.push(service);
+                } 
+            },
+            Err(err) => log::error!("Error fetching {service} details: {err}"),
+        }
+    }
+    services.retain(|&v| !service_not_ok.contains(&v));
+
+    for service in &services {
+        match systemctl::Unit::from_systemctl(service) {
+            Ok(service_details) => {
+                match service_details.status(){
+                    Ok(state)  => {
+                            match state.as_str() {
+                                "Enabled" => {
+                                    //check for running status...
+                                    //will modify unforced_error here
+                                    unforced_error=true;
+                                },
+                                _ => {
+                                    service_not_ok.push(service);
+                                    log::warn!("service: {} is not enabled", service_details.name);
+                                },
+                            }; 
+                        }
+                    Err(err) => log::error!("Error fetching {service} status: {err}"),
+                }
+            },
+            Err(err) => log::error!("Error fetching {service} status: {err}"),
+        }
+    }
+
+    if !service_not_ok.is_empty() {
+        bail!("{}",{
+            service_not_ok.dedup();
+            ().len()
+        });
+    }
+
+    if unforced_error {
+        bail!("{}", -1);
+    }
+    Ok(())
+}
 fn main() -> Result<()> {
     let cli = Cli::parse();
     pretty_env_logger::formatted_builder()
         .filter_level(cli.log_level.to_log())
         .init();
 
+    //get_config should be here.....
+    let services = vec!["sshd","podman"];
+    
     match cli.command {
         Commands::HealthCheck => health_check(),
         Commands::Rollback => trigger_rollback(),
-        Commands::Poc => poc_rollback_policy(1),
+        Commands::PocRollback => poc_rollback_policy(1),
+        Commands::PocServiceMinitor => poc_service_monitor(services),
     }
 }
 
