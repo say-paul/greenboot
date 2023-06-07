@@ -274,15 +274,17 @@ fn poc_service_monitor(mut services: Vec<&str>) -> Result<()> {
             Ok(service_details) => {
                 match service_details.status(){
                     Ok(state)  => {
+                            println!("{service} status is {}",state.as_str())
                             match state.as_str() {
-                                "Enabled" => {
-                                    //check for running status...
-                                    //will modify unforced_error here
-                                    unforced_error=true;
+                                "disabled" => {
+                                    service_not_ok.push(service);
+                                    log::warn!("service: {service} is disabled");
                                 },
                                 _ => {
-                                    service_not_ok.push(service);
-                                    log::warn!("service: {} is not enabled", service_details.name);
+                                    if !service_details.active {
+                                        log::warn!("service: {service} is not running"); 
+                                        unforced_error=true;
+                                    }
                                 },
                             }; 
                         }
@@ -303,6 +305,7 @@ fn poc_service_monitor(mut services: Vec<&str>) -> Result<()> {
     if unforced_error {
         bail!("{}", -1);
     }
+    println!("Worked");
     Ok(())
 }
 fn main() -> Result<()> {
