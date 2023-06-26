@@ -20,11 +20,12 @@ pub fn handle_reboot(force: bool) -> Result<(), Error> {
 pub fn handle_rollback() -> Result<(), Error> {
     match get_boot_counter() {
         Some(-1) => {
+            log::info!("Greenboot will now attempt rollback");
             let status = Command::new("rpm-ostree").arg("rollback").status()?;
             if status.success() {
                 return Ok(());
             }
-            bail!("status code unknown");
+            bail!(status.to_string());
         }
         _ => bail!("boot_counter is either unset or not equal to -1"),
     }
@@ -32,14 +33,17 @@ pub fn handle_rollback() -> Result<(), Error> {
 
 pub fn set_boot_counter(reboot_count: i32) -> Result<()> {
     match get_boot_counter() {
-        Some(_) => Ok(()),
+        Some(counter) => {
+            log::info!("boot_counter={counter}");
+            Ok(())
+        }
         None => {
             Command::new("grub2-editenv")
                 .arg("-")
                 .arg("set")
                 .arg(format!("boot_counter={reboot_count}"))
                 .status()?;
-            log::info!("boot_counter initialized");
+            log::info!("boot_counter={reboot_count}");
             Ok(())
         }
     }

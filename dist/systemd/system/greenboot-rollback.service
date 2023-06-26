@@ -2,7 +2,7 @@
 [Unit]
 Description=Greenboot rollback
 DefaultDependencies=no
-Before=multi-user.target greenboot.service
+Before=multi-user.target ostree-finalize-staged.service greenboot.service
 Wants=local-fs.target
 After=local-fs.target
 ConditionNeedsUpdate=|/etc
