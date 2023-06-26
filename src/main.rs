@@ -268,31 +268,27 @@ fn poc_service_monitor(mut services: Vec<&str>) -> Result<()> {
         }
     }
     services.retain(|&v| !service_not_ok.contains(&v));
-
+    let disabled_services =  match systemctl::list_disabled_services(){
+        Ok(list) => list,
+        Err(_) => bail!("Unable to fetch list of disabled services")
+    };
+    println!("disabled services : {:?}",disabled_services);
     for service in &services {
+        if disabled_services.contains(&service.to_string()) {
+            service_not_ok.push(service);
+            log::warn!("service: {service} is disabled");
+            continue;
+        }
+        println!("{service}: {}",systemctl::Unit::from_systemctl(service).unwrap().preset);
         match systemctl::Unit::from_systemctl(service) {
             Ok(service_details) => {
-                match service_details.status(){
-                    Ok(state)  => {
-                            println!("{service} status is {}",state.as_str())
-                            match state.as_str() {
-                                "disabled" => {
-                                    service_not_ok.push(service);
-                                    log::warn!("service: {service} is disabled");
-                                },
-                                _ => {
-                                    if !service_details.active {
-                                        log::warn!("service: {service} is not running"); 
-                                        unforced_error=true;
-                                    }
-                                },
-                            }; 
-                        }
-                    Err(err) => log::error!("Error fetching {service} status: {err}"),
+                if !service_details.active {
+                    log::warn!("service: {service} is not running"); 
+                    unforced_error=true;
                 }
             },
             Err(err) => log::error!("Error fetching {service} status: {err}"),
-        }
+        }   
     }
 
     if !service_not_ok.is_empty() {
