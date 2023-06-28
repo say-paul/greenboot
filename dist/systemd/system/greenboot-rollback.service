@@ -13,4 +13,4 @@ ExecStart=/usr/libexec/greenboot/greenboot rollback
 Restart=no
 
 [Install]
-WantedBy=ostree-finalize-staged.service
+RequiredBy=ostree-finalize-staged.service
