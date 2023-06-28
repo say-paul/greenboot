@@ -7,7 +7,7 @@ use std::str;
 pub fn handle_reboot(force: bool) -> Result<(), Error> {
     if !force {
         match get_boot_counter() {
-            Some(0) => bail!("Countdown has ended"),
+            Some(t) if t <= 0 => bail!("countdown ended, check greenboot-rollback status"),
             None => bail!("boot_counter is not set"),
             _ => {}
         }
@@ -19,7 +19,7 @@ pub fn handle_reboot(force: bool) -> Result<(), Error> {
 
 pub fn handle_rollback() -> Result<(), Error> {
     match get_boot_counter() {
-        Some(0) => {
+        Some(t) if t <= 0 => {
             log::info!("Greenboot will now attempt rollback");
             let status = Command::new("rpm-ostree").arg("rollback").status()?;
             if status.success() {
