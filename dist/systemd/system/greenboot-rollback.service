@@ -1,10 +1,9 @@
-
 [Unit]
 Description=Greenboot rollback
 DefaultDependencies=no
 Before=ostree-finalize-staged.service
-Wants=local-fs.target greenboot.service
-After=local-fs.target greenboot.service
+Wants=local-fs.target
+After=local-fs.target
 
 [Service]
 Type=oneshot
