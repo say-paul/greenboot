@@ -1,7 +1,7 @@
 [Unit]
 Description=greenboot Health Checks Runner
 DefaultDependencies=no
-Before=boot-complete.target greenboot-rollback.service
+Before=boot-complete.target
 OnFailureJobMode=fail
 RequiresMountsFor=/boot
 RequiresMountsFor=/etc
@@ -11,7 +11,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/libexec/greenboot/greenboot health-check
 Restart=no
+OnFailure=greenboot-rollback.service
 
 [Install]
 RequiredBy=boot-complete.target
-WantedBy=multi-user.target

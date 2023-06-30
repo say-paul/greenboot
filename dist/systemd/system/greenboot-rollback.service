@@ -2,16 +2,14 @@
 Description=Greenboot rollback
 DefaultDependencies=no
 Before=systemd-update-done.service
-Wants=local-fs.target 
 After=local-fs.target
 ConditionNeedsUpdate=|/var
 ConditionNeedsUpdate=|/etc
+Conflicts=shutdown.target
+Before=shutdown.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=true
 ExecStart=/usr/libexec/greenboot/greenboot rollback
 Restart=no
-
-[Install]
-WantedBy=multi-user.target
