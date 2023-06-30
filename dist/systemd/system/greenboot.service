@@ -3,6 +3,8 @@ Description=greenboot Health Checks Runner
 DefaultDependencies=no
 Before=boot-complete.target greenboot-rollback.service
 OnFailureJobMode=fail
+RequiresMountsFor=/boot
+RequiresMountsFor=/etc
 
 [Service]
 Type=oneshot
