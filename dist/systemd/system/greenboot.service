@@ -14,3 +14,4 @@ OnFailure=greenboot-rollback.service
 
 [Install]
 RequiredBy=boot-complete.target
+WantedBy=multi-user.target
