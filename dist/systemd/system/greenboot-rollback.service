@@ -3,7 +3,7 @@ Description=Greenboot rollback
 DefaultDependencies=no
 Before=systemd-update-done.service
 Wants=local-fs.target 
-After=local-fs.target greenboot.service
+After=local-fs.target
 ConditionNeedsUpdate=|/var
 ConditionNeedsUpdate=|/etc
 

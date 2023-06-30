@@ -1,6 +1,6 @@
 [Unit]
 Description=greenboot Health Checks Runner
-Before=boot-complete.target greenboot-rollback.service systemd-update-done.service
+Before=boot-complete.target greenboot-rollback.service
 OnFailureJobMode=fail
 
 [Service]
