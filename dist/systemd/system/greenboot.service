@@ -1,6 +1,5 @@
 [Unit]
 Description=greenboot Health Checks Runner
-DefaultDependencies=no
 Before=boot-complete.target
 OnFailureJobMode=fail
 RequiresMountsFor=/boot
