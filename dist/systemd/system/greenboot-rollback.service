@@ -1,5 +1,6 @@
 [Unit]
 Description=Greenboot rollback
+DefaultDependencies=no
 Before=systemd-update-done.service
 After=local-fs.target
 ConditionNeedsUpdate=/var
