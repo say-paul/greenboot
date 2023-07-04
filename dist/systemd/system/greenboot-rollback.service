@@ -1,12 +1,12 @@
 [Unit]
 Description=Greenboot rollback
-# DefaultDependencies=no
-# Before=systemd-update-done.service
+DefaultDependencies=no
+Before=systemd-update-done.service
 After=local-fs.target
-# ConditionNeedsUpdate=|/var
-# ConditionNeedsUpdate=|/etc
-# Conflicts=shutdown.target
-# Before=shutdown.target
+ConditionNeedsUpdate=|/var
+ConditionNeedsUpdate=|/etc
+Conflicts=shutdown.target
+Before=shutdown.target
 
 [Service]
 Type=oneshot
