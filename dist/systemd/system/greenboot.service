@@ -1,7 +1,6 @@
 [Unit]
 Description=greenboot Health Checks Runner
-DefaultDependencies=no
-Before=boot-complete.target systemd-update-done.service
+Before=boot-complete.target
 OnFailureJobMode=fail
 RequiresMountsFor=/boot
 RequiresMountsFor=/etc
