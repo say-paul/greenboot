@@ -6,7 +6,7 @@
 %global __cargo_is_lib() false
 %global forgeurl https://github.com/fedora-iot/greenboot
 
-Version:            1.1.20
+Version:            1.1.21
 
 %forgemeta
 
