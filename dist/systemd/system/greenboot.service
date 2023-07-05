@@ -1,9 +1,9 @@
 [Unit]
 Description=greenboot Health Checks Runner
-Before=boot-complete.target
+DefaultDependencies=no
+Before=boot-complete.target systemd-update-done.service
 OnFailureJobMode=fail
 RequiresMountsFor=/boot
-RequiresMountsFor=/etc
 OnFailure=greenboot-rollback.service
 
 [Service]

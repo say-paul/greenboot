@@ -1,9 +1,7 @@
 [Unit]
 Description=Greenboot rollback
-Requires=systemd-update-done.service
-After=local-fs.target
-Conflicts=shutdown.target
-Before=shutdown.target
+Wants=systemd-update-done.service
+After=local-fs.target systemd-update-done.service
 
 [Service]
 Type=oneshot
