@@ -1,7 +1,11 @@
 [Unit]
 Description=Greenboot rollback
-Wants=systemd-update-done.service
-After=local-fs.target systemd-update-done.service
+DefaultDependencies=no
+Before=systemd-update-done.service
+Requires=dbus.service
+RequiresMountsFor=/boot
+ConditionNeedsUpdate=|/var
+ConditionNeedsUpdate=|/etc
 
 [Service]
 Type=oneshot
