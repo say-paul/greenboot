@@ -2,7 +2,6 @@
 Description=Greenboot rollback
 Requires=systemd-update-done.service
 After=local-fs.target
-Requires=local-fs.target
 Conflicts=shutdown.target
 Before=shutdown.target
 
