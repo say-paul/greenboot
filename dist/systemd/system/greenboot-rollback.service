@@ -2,8 +2,8 @@
 Description=Greenboot rollback
 Requires=dbus.service
 RequiresMountsFor=/boot
-Wants=systemd-update-done.service
 After=systemd-update-done.service
+BindsTo=systemd-update-done.service
 
 [Service]
 Type=oneshot

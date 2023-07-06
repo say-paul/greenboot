@@ -86,7 +86,7 @@ pub fn handle_motd(state: &str) -> Result<(), Error> {
     let mut motd_file = OpenOptions::new()
         .create(true)
         .write(true)
-        .open("/run/motd.d/boot-status")?;
+        .open("/etc/motd.d/boot-status")?;
     motd_file.write_all(motd.as_bytes())?;
     Ok(())
 }
