@@ -10,3 +10,6 @@ Type=oneshot
 RemainAfterExit=true
 ExecStart=/usr/libexec/greenboot/greenboot rollback
 Restart=no
+
+[Install]
+WantedBy=multi-user.target

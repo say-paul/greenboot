@@ -5,7 +5,6 @@ Before=boot-complete.target systemd-update-done.service
 OnFailureJobMode=fail
 RequiresMountsFor=/boot
 RequiresMountsFor=/etc
-OnFailure=greenboot-rollback.service
 
 [Service]
 Type=oneshot
