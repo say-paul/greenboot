@@ -17,7 +17,7 @@ License:            LGPLv2+
 
 URL:            %{forgeurl}
 Source:         %{forgesource}
-%if ! 0%{?with_packit}
+%if 0%{?with_packit}
 %if "%{?commit}" != ""
 Source1:        %{name}-%{commit}-vendor.tar.gz
 %else
@@ -159,8 +159,8 @@ Requires:           jq
 
 %prep
 %forgeautosetup
-%if ! 0%{?with_packit}
-tar xvf %{SOURCE1}
+%if 0%{?with_packit}
+%autosetup -n %{archivename} -D -T -a 1
 %endif
 %if ! 0%{?with_bundled}
 %cargo_prep
