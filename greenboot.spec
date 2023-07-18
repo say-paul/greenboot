@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 %bcond_without check
 %global with_bundled 1
-%global with_packit 1
+%global with_packit 0
 %global __cargo_skip_build 0
 %global __cargo_is_lib() false
 %global forgeurl https://github.com/fedora-iot/greenboot
@@ -160,11 +160,9 @@ Requires:           jq
 
 %prep
 %forgeautosetup
-# %if ! 0%{?with_packit}
+%if ! 0%{?with_packit}
 tar xvf %{SOURCE1}
-# %else
-# %autosetup -n %{archivename} -D -T -a 1
-# %endif
+%endif
 %if ! 0%{?with_bundled}
 %cargo_prep
 %else
