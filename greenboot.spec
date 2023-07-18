@@ -158,11 +158,11 @@ Requires:           jq
 
 %prep
 %forgeautosetup
-%if 1%{?with_packit}
+# %if 1%{?with_packit}
 tar xvf %{SOURCE1}
 # %else
 # %autosetup -n %{archivename} -D -T -a 1
-%endif
+# %endif
 %if ! 0%{?with_bundled}
 %cargo_prep
 %else
