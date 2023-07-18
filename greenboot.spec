@@ -18,10 +18,12 @@ License:            LGPLv2+
 URL:            %{forgeurl}
 Source:         %{forgesource}
 
+%if ! 0%{?with_packit}
 %if "%{?commit}" != ""
 Source1:        %{name}-%{commit}-vendor.tar.gz
 %else
 Source1:        %{name}-%{version}-vendor.tar.gz
+%endif
 %endif
 
 ExcludeArch:    s390x i686 %{power64}
@@ -158,7 +160,7 @@ Requires:           jq
 
 %prep
 %forgeautosetup
-# %if 1%{?with_packit}
+# %if ! 0%{?with_packit}
 tar xvf %{SOURCE1}
 # %else
 # %autosetup -n %{archivename} -D -T -a 1
