@@ -6,7 +6,7 @@
 %global __cargo_is_lib() false
 %global forgeurl https://github.com/fedora-iot/greenboot
 
-Version:            1.1.30
+Version:            1.1.31
 
 %forgemeta
 
@@ -17,6 +17,7 @@ License:            LGPLv2+
 
 URL:            %{forgeurl}
 Source:         %{forgesource}
+
 %if "%{?commit}" != ""
 Source1:        %{name}-%{commit}-vendor.tar.gz
 %else
@@ -157,7 +158,11 @@ Requires:           jq
 
 %prep
 %forgeautosetup
+%if 1%{?with_packit}
+tar xvf %{SOURCE1}
+%else
 %autosetup -n %{archivename} -D -T -a 1
+%endif
 %if ! 0%{?with_bundled}
 %cargo_prep
 %else
