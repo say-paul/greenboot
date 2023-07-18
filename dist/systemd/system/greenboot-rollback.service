@@ -1,9 +1,9 @@
 [Unit]
 Description=Greenboot rollback
-DefaultDependencies=no
-Before=ostree-finalize-staged.service
-Wants=local-fs.target
-After=local-fs.target
+Requires=dbus.service
+RequiresMountsFor=/boot
+After=systemd-update-done.service
+BindsTo=systemd-update-done.service
 
 [Service]
 Type=oneshot
@@ -12,4 +12,4 @@ ExecStart=/usr/libexec/greenboot/greenboot rollback
 Restart=no
 
 [Install]
-RequiredBy=ostree-finalize-staged.service
+WantedBy=multi-user.target

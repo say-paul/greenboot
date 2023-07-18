@@ -1,12 +1,12 @@
 %global debug_package %{nil}
 %bcond_without check
 %global with_bundled 1
-%global with_packit 1
+%global with_packit 0
 %global __cargo_skip_build 0
 %global __cargo_is_lib() false
 %global forgeurl https://github.com/fedora-iot/greenboot
 
-Version:            1.1.03
+Version:            1.1.31
 
 %forgemeta
 
@@ -17,6 +17,7 @@ License:            LGPLv2+
 
 URL:            %{forgeurl}
 Source:         %{forgesource}
+
 %if ! 0%{?with_packit}
 %if "%{?commit}" != ""
 Source1:        %{name}-%{commit}-vendor.tar.gz
