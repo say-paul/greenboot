@@ -181,7 +181,7 @@ fn run_green() -> Result<(), Error> {
 fn health_check() -> Result<()> {
     let config = GreenbootConfig::get_config();
     log::info!("{config:?}");
-    handle_motd("healthcheck is in progress").ok();
+    handle_motd("healthcheck is in progress")?;
     let run_status = run_diagnostics();
     match run_status {
         Ok(()) => {
@@ -205,7 +205,7 @@ fn health_check() -> Result<()> {
                 .unwrap_or_else(|e| log::error!("cannot set boot_counter as: {}", e.to_string()));
             handle_reboot(false)
                 .unwrap_or_else(|e| log::error!("cannot reboot as: {}", e.to_string()));
-            bail!(e);
+            Err(e)
         }
     }
 }

@@ -25,8 +25,8 @@ pub fn handle_reboot(force: bool) -> Result<(), Error> {
 
 /// rollback to previous ostree deployment if boot counter is les than 0
 pub fn handle_rollback() -> Result<(), Error> {
-    match get_boot_counter() {
-        Some(t) if t <= 0 => {
+    if let Some(t) = get_boot_counter() {
+        if t <= 0 {
             log::info!("Greenboot will now attempt rollback");
             let status = Command::new("rpm-ostree").arg("rollback").status()?;
             if status.success() {
@@ -34,26 +34,20 @@ pub fn handle_rollback() -> Result<(), Error> {
             }
             bail!(status.to_string());
         }
-        _ => log::info!("Rollback not initiated as boot_counter is either unset or not equal to 0"),
     }
+    log::info!("Rollback not initiated as boot_counter is either unset or not equal to 0");
     Ok(())
 }
 
 /// sets grub variable boot_counter if not set
 pub fn set_boot_counter(reboot_count: i32) -> Result<()> {
-    match get_boot_counter() {
-        Some(counter) => {
-            log::info!("boot_counter={counter}");
-            Ok(())
-        }
-        None => {
-            if set_grub_var("boot_counter", reboot_count) {
-                log::info!("boot_counter={reboot_count}");
-                return Ok(());
-            }
-            bail!("grub returned error");
-        }
+    if let Some(current_counter) = get_boot_counter() {
+        log::info!("boot_counter={current_counter}");
+    } else if set_grub_var("boot_counter", reboot_count) {
+        log::info!("boot_counter={}", reboot_count);
+        return Ok(());
     }
+    bail!("Failed to set GRUB variable: boot_counter");
 }
 
 /// resets grub variable boot_counter
