@@ -20,7 +20,7 @@ srpm_build_deps:
 
 actions:
   get-current-version:
-  - rpmspec -q --queryformat "%{VERSION}\n" greenboot.spec |head -n1
+  - grep -oP '^Version:\s+\K\S+' greenboot.spec
   create-archive:
   - "cargo vendor vendor"
   - bash -c "git archive --prefix=greenboot-${PACKIT_PROJECT_VERSION}/ --format=tar HEAD > greenboot-${PACKIT_PROJECT_VERSION}.tar"
