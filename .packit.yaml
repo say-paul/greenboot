@@ -21,11 +21,11 @@ srpm_build_deps:
 actions:
   create-archive:
   - "cargo vendor vendor"
-  - bash -c "git archive --prefix=greenboot-${PACKIT_PROJECT_VERSION}/ --format=tar HEAD > greenboot-${PACKIT_PROJECT_VERSION}.tar"
-  - bash -c "tar -xvf greenboot-${PACKIT_PROJECT_VERSION}.tar"
-  - bash -c "cp -Ra vendor greenboot-${PACKIT_PROJECT_VERSION}"
-  - bash -c "tar -czf greenboot-${PACKIT_PROJECT_VERSION}.tar.gz greenboot-${PACKIT_PROJECT_VERSION}"
-  - bash -c "rm -rf greenboot-${PACKIT_PROJECT_VERSION} greenboot-${PACKIT_PROJECT_VERSION}.tar vendor"
+  - bash -c "git archive --prefix=greenboot-${PACKIT_RPMSPEC_RELEASE}/ --format=tar HEAD > greenboot-${PACKIT_RPMSPEC_RELEASE}.tar"
+  - bash -c "tar -xvf greenboot-${PACKIT_RPMSPEC_RELEASE}.tar"
+  - bash -c "cp -Ra vendor greenboot-${PACKIT_RPMSPEC_RELEASE}"
+  - bash -c "tar -czf greenboot-${PACKIT_RPMSPEC_RELEASE}.tar.gz greenboot-${PACKIT_RPMSPEC_RELEASE}"
+  - bash -c "rm -rf greenboot-${PACKIT_RPMSPEC_RELEASE} greenboot-${PACKIT_RPMSPEC_RELEASE}.tar vendor"
   - bash -c "ls -1 ./greenboot-*.tar.gz"
   fix-spec-file:
   - sed -i greenboot.spec -e "s/with_packit 0/with_packit 1/"
