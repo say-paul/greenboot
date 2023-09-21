@@ -15,17 +15,14 @@ Release:            1%{?dist}
 Summary:            Generic Health Check Framework for systemd
 License:            LGPLv2+
 
-
-%if ! 0%{?with_packit}
 Source:         %{forgesource}
 URL:            %{forgeurl}
+%if ! 0%{?with_packit}
 %if "%{?commit}" != ""
 Source1:        %{name}-%{commit}-vendor.tar.gz
 %else
 Source1:        %{name}-%{version}-vendor.tar.gz
 %endif
-%else
-Source:         %{name}-%{version}.tar.gz
 %endif
 
 ExcludeArch:    s390x i686 %{power64}
