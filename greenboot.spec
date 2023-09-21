@@ -15,10 +15,10 @@ Release:            1%{?dist}
 Summary:            Generic Health Check Framework for systemd
 License:            LGPLv2+
 
-URL:            %{forgeurl}
 
 %if ! 0%{?with_packit}
 Source:         %{forgesource}
+URL:            %{forgeurl}
 %if "%{?commit}" != ""
 Source1:        %{name}-%{commit}-vendor.tar.gz
 %else
