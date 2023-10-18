@@ -96,7 +96,7 @@ impl LogLevel {
 enum Commands {
     HealthCheck,
     Rollback,
-    Poc,
+    PocRollback,
 }
 
 /// this runs the scripts in required.d and wanted.d
@@ -245,8 +245,14 @@ pub fn poc_rollback_policy(duration: u32) -> Result<()> {
     let s = Command::new("rpm-ostree")
         .arg("status")
         .arg("--json")
-        .output()
-        .unwrap();
+        .output();
+    if s.is_err() {
+        bail!("Unable to invoke rpm-ostree");
+    }
+    let s = s.unwrap();
+    if s.status.code() != Some(0) {
+        bail!("Unable to invoke rpm-ostree");
+    }
     let j: serde_json::Value = match str::from_utf8(&s.stdout[..]) {
         Ok(v) => serde_json::from_str(v).unwrap(),
         Err(_) => bail!("cannot_convert to json"),
@@ -277,7 +283,7 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::HealthCheck => health_check(),
         Commands::Rollback => trigger_rollback(),
-        Commands::Poc => poc_rollback_policy(1),
+        Commands::PocRollback => poc_rollback_policy(1),
     }
 }
 
