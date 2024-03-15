@@ -11,7 +11,7 @@ License:            LGPLv2+
 %global repo_tag    v%{version}
 
 URL:                https://github.com/%{repo_owner}/%{repo_name}
-Source0:            https://github.com/%{repo_owner}/%{repo_name}/archive/%{repo_tag}.tar.gz
+Source0:            https://github.com/%{repo_owner}/%{repo_name}/archive/%{name}-%{commit}.tar.gz
 
 ExcludeArch: s390x
 BuildRequires:      systemd-rpm-macros
