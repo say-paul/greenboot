@@ -2,6 +2,7 @@
 
 Name:               greenboot
 Version:            0.15.4
+Release:            1%{?dist}
 Summary:            Generic Health Check Framework for systemd
 License:            LGPLv2+
 
@@ -40,7 +41,6 @@ Obsoletes:          greenboot-rpm-ostree-grub2 <= 0.12.0
 
 %package default-health-checks
 Summary:            Series of optional and curated health checks
-Requires:           %{name} = %{name}-%{commit}
 Requires:           util-linux
 Requires:           jq
 Provides:           greenboot-update-platforms-check
