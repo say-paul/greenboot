@@ -41,7 +41,7 @@ Obsoletes:          greenboot-rpm-ostree-grub2 <= 0.12.0
 
 %package default-health-checks
 Summary:            Series of optional and curated health checks
-Requires:           %{name} = %{version}-%{release}
+Requires:           %{name} = %{name}-%{commit}
 Requires:           util-linux
 Requires:           jq
 Provides:           greenboot-update-platforms-check
