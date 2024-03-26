@@ -52,7 +52,6 @@ srpm: $(RPM_SPECFILE) $(RPM_TARBALL) $(VENDOR_TARBALL)
 
 .PHONY: rpm
 rpm: $(RPM_SPECFILE) $(RPM_TARBALL)
-	rm -rf ./rpmbuild && \
 	mkdir -p rpmbuild && \
 	rpmbuild -bb \
 		--define "_topdir $(CURDIR)/rpmbuild" \

@@ -1,0 +1,15 @@
+{
+    "blueprint": {
+      "customizations": {
+        "user": [
+          {
+            "name": "core",
+            "password": "foobar",
+            "groups": [
+              "wheel"
+            ]
+          }
+        ]
+      }
+    }
+  }
