@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -eo pipefail
+
+function remount_boot_ro {
+    if grep -q " /boot .* rw," /proc/mounts; then
+        mount -o remount,ro /boot || exit 5
+    fi
+    return
+}
+
+# Check if /boot is mounted as read-only, and remount as read-write if necessary
+if grep -q " /boot .* ro," /proc/mounts; then
+    mount -o remount,rw /boot || exit 5
+fi
+
+# Run the grub2-editenv commands
+if ! /usr/bin/grub2-editenv /boot/grub2/grubenv set boot_success=1; then
+    # If the first command fails, remount /boot as read-only and exit with failure
+    remount_boot_ro
+    exit 1
+fi
+
+if ! /usr/bin/grub2-editenv /boot/grubenv unset boot_counter; then
+    # If the second command fails, remount /boot as read-only and exit with failure
+    remount_boot_ro
+    exit 1
+fi
+
+# Remount /boot as read-only if it was mounted as read-write
+remount_boot_ro
+
+# If everything succeeded, exit with success
+exit 0
